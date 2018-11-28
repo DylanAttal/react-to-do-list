@@ -79,6 +79,11 @@ footer {
   max-width: 30em;
 }
 
+header p {
+  font-size: 0.8rem;
+  line-height: 0.5rem;
+}
+
 footer {
   margin-bottom: 0.5em;
   font-size: 0.8em;
@@ -88,6 +93,10 @@ footer {
 footer img {
   vertical-align: middle;
   animation: spin infinite 10s linear;
+}
+
+.editing {
+  background-color: teal;
 }
 
 @keyframes spin {

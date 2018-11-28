@@ -9,7 +9,9 @@ class App extends Component {
 
     this.state = {
       todos: [],
-      newItemText: ''
+      newItemText: '',
+      editing: false,
+      idBeingEdited: undefined
     }
   }
 
@@ -41,17 +43,44 @@ class App extends Component {
 
   addNewItem = event => {
     event.preventDefault()
-    axios
-      .post(`https://one-list-api.herokuapp.com/items?access_token=listtoken`, {
-        item: {
-          text: this.state.newItemText
-        }
-      })
-      .then(response => {
-        this.loadList()
-      })
-
-    console.log(this.state.todos)
+    if (this.state.editing) {
+      axios
+        .put(
+          `https://one-list-api.herokuapp.com/items/${
+            this.state.idBeingEdited
+          }?access_token=listtoken`,
+          {
+            item: {
+              complete: false,
+              text: this.state.newItemText
+            }
+          }
+        )
+        .then(response => {
+          this.loadList()
+          this.setState({
+            editing: false,
+            idBeingEdited: undefined,
+            newItemText: ''
+          })
+        })
+    } else {
+      axios
+        .post(
+          `https://one-list-api.herokuapp.com/items?access_token=listtoken`,
+          {
+            item: {
+              text: this.state.newItemText
+            }
+          }
+        )
+        .then(response => {
+          this.setState({
+            newItemText: ''
+          })
+          this.loadList()
+        })
+    }
   }
 
   crossOffItem = event => {
@@ -83,41 +112,85 @@ class App extends Component {
       })
   }
 
+  editItem = event => {
+    event.preventDefault()
+    const id = parseInt(event.target.dataset.todoid)
+    const todo = this.state.todos.find(todo => todo.id === id)
+    this.setState({
+      editing: true,
+      idBeingEdited: id,
+      newItemText: todo.text
+    })
+  }
+
+  todoContent = (text, shouldShowInput) => {
+    if (shouldShowInput) {
+      return (
+        <form onSubmit={this.addNewItem}>
+          <input
+            type="text"
+            placeholder="Edit an item"
+            value={this.state.newItemText}
+            onChange={this.changeText}
+          />
+        </form>
+      )
+    } else {
+      return text
+    }
+  }
+
+  form = () => {
+    if (!this.state.editing) {
+      return (
+        <form onSubmit={this.addNewItem}>
+          <input
+            type="text"
+            placeholder="Add a new item"
+            value={this.state.newItemText}
+            onChange={this.changeText}
+          />
+        </form>
+      )
+    }
+  }
+
   render() {
     return (
       <div className="App">
         <header>
           <h1>To Do List</h1>
-          <h5>Type new item and press Enter to create it</h5>
-          <h5>Click on item to cross it off</h5>
-          <h5>Double click on item to delete it</h5>
+          <p>Type new item and press Enter to create it</p>
+          <p>Click on item to cross it off</p>
+          <p>Double click on item to delete it</p>
+          <p>Right click on item to edit it</p>
         </header>
         <main>
           <ul className="one-list">
             {this.state.todos.map((todo, index) => {
               const todoClass = todo.complete ? 'completed' : ''
+              const editingClass =
+                todo.id === this.state.idBeingEdited ? 'editing' : ''
               return (
                 <li
                   key={index}
                   id={todo.id}
+                  data-todoid={todo.id}
                   onClick={this.crossOffItem}
                   onDoubleClick={this.deleteItem}
                   value={todo.text}
-                  className={todoClass}
+                  className={`${todoClass} ${editingClass}`}
+                  onContextMenu={this.editItem}
                 >
-                  {todo.text}
+                  {this.todoContent(
+                    todo.text,
+                    todo.id === this.state.idBeingEdited
+                  )}
                 </li>
               )
             })}
           </ul>
-          <form onSubmit={this.addNewItem}>
-            <input
-              type="text"
-              placeholder="Add item to list"
-              value={this.state.newItemText}
-              onChange={this.changeText}
-            />
-          </form>
+          {this.form()}
         </main>
         <footer>
           <p>
